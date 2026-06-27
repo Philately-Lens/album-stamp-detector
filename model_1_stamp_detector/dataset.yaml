@@ -1,0 +1,9 @@
+path: data/yolo_dataset
+
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: stamp
+  1: paper_label
