@@ -1,158 +1,188 @@
+# Album Stamp Detector
 
-# Stamp AI — Sri Lankan Stamp Detector
+Model 1 of the **Philately Lens** project.
 
-An offline computer-vision project for detecting postage stamps in Sri Lankan stamp album-page photographs.
+This repository contains a YOLO-based object detection model that identifies stamps and paper labels in stamp album images.
 
-This is the first model in a larger Stamp AI system. Its purpose is to automatically find individual stamps in an album page so they can later be cropped, stored, and compared against a collector’s personal collection.
+## Classes
 
-## Current Model
-
-* Model: YOLO11n object detector
-* Task: Object detection
-* Classes:
-
-  * `0` — stamp
-  * `1` — paper_label
-* Input: Stamp album-page image
-* Output: Bounding boxes around detected stamps and handwritten paper labels
-
-## Dataset
-
-The training dataset is maintained in a separate repository:
-
-`https://github.com/Nethsith/sri-lanka-stamp-album-dataset`
-
-Dataset version used for the initial model:
-
-* Total annotated pages: 68
-* Training pages: 51
-* Validation pages: 7
-* Test pages: 10
-* Annotation format: YOLO bounding boxes
+| Class ID | Class Name  |
+| -------: | ----------- |
+|        0 | stamp       |
+|        1 | paper_label |
 
 ## Project Structure
 
 ```text
-model_1_stamp_detector/
-├── models/
-│   └── best.pt
-├── reports/
-│   ├── BoxF1_curve.png
-│   ├── BoxPR_curve.png
-│   ├── confusion_matrix.png
-│   └── results.png
-├── sample_data/
-│   ├── images/
-│   └── labels/
-├── train.py
-├── predict.py
+album-stamp-detector/
+│
+├── .github/
+│   └── workflows/
+│       └── python-ci.yml
+│
+├── scripts/
+│   ├── train.py
+│   ├── predict.py
+│   ├── upload_dataset_to_hf.py
+│   └── download_dataset_from_hf.py
+│
+├── data/
+│   ├── yolo_dataset/
+│   │   ├── images/
+│   │   │   ├── train/
+│   │   │   ├── val/
+│   │   │   └── test/
+│   │   └── labels/
+│   │       ├── train/
+│   │       ├── val/
+│   │       └── test/
+│   │
+│   └── [raw image folders]
+│
 ├── dataset.yaml
 ├── requirements.txt
-├── .gitignore
 └── README.md
 ```
 
+## Requirements
+
+* Python 3.11 recommended
+* Git
+* A Hugging Face account only when uploading or updating the dataset
+
 ## Installation
 
-```bash
-git clone https://github.com/Nethsith/Stamp-AI.git
-cd Stamp-AI/model_1_stamp_detector
+Clone the repository:
+
+```powershell
+git clone https://github.com/Philately-Lens/album-stamp-detector.git
+cd album-stamp-detector
 ```
 
 Create and activate a virtual environment:
 
 ```powershell
-py -m venv .venv
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
 Install dependencies:
 
 ```powershell
+python -m pip install --upgrade pip
 pip install -r requirements.txt
+```
+
+## Download the Dataset
+
+The complete dataset, including raw images and YOLO-formatted images and labels, is stored on Hugging Face:
+
+```text
+nethsith/sri-lankan-album-stamp-detection
+```
+
+Download it into the local `data` folder:
+
+```powershell
+python scripts\download_dataset_from_hf.py --repo-id "nethsith/sri-lankan-album-stamp-detection" --output-dir "data"
+```
+
+The dataset is public, so downloading does not require a Hugging Face token.
+
+After downloading, confirm that these folders exist:
+
+```text
+data/yolo_dataset/images/train
+data/yolo_dataset/images/val
+data/yolo_dataset/labels/train
+data/yolo_dataset/labels/val
+```
+
+## Dataset Configuration
+
+The project uses this `dataset.yaml` configuration:
+
+```yaml
+path: data/yolo_dataset
+
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: stamp
+  1: paper_label
 ```
 
 ## Train the Model
 
-First download or clone the dataset repository.
+Run training from the project root:
 
 ```powershell
-git clone https://github.com/Nethsith/sri-lanka-stamp-album-dataset.git
+python scripts\train.py
 ```
 
-Then train using the dataset YAML file:
+Training outputs, logs, metrics, and model weights are saved inside the `runs/` folder.
 
-```powershell
-python train.py --data "PATH_TO_DATASET\dataset.yaml"
-```
-
-Example:
-
-```powershell
-python train.py --data "D:\projects\stamp\sri-lanka-stamp-album-dataset\dataset.yaml"
-```
-
-Training outputs will be saved inside:
+The best trained model is normally saved in a path similar to:
 
 ```text
+runs/stamp_detector_v1/weights/best.pt
+```
+
+## Run Predictions
+
+Use the prediction script after training:
+
+```powershell
+python scripts\predict.py
+```
+
+Ensure that the script is configured to use the correct trained weight file, usually `best.pt`, and the correct input image or folder.
+
+## Upload Dataset Updates
+
+Log in to Hugging Face before uploading:
+
+```powershell
+hf auth login
+```
+
+Upload the full local `data` folder:
+
+```powershell
+python scripts\upload_dataset_to_hf.py --repo-id "nethsith/sri-lankan-album-stamp-detection" --dataset-dir "data"
+```
+
+## GitHub Actions
+
+This repository includes a GitHub Actions workflow located at:
+
+```text
+.github/workflows/python-ci.yml
+```
+
+The workflow runs when Python files, `dataset.yaml`, or the workflow file changes.
+
+It validates:
+
+* Python syntax in the `scripts` folder
+* Required values inside `dataset.yaml`
+
+The workflow does not download the dataset or train the model on GitHub Actions.
+
+## Recommended `.gitignore` Entries
+
+Keep large local files out of GitHub:
+
+```gitignore
+.venv/
+__pycache__/
+*.pyc
+
+data/
 runs/
+
+.idea/
+.vscode/
 ```
-
-## Run Prediction
-
-The trained model is stored at:
-
-```text
-models/best.pt
-```
-
-To detect only stamps from a folder of album-page images:
-
-```powershell
-yolo detect predict model="models/best.pt" source="PATH_TO_IMAGES" classes=0 conf=0.36 iou=0.7 save=True save_txt=True save_conf=True save_crop=True
-```
-
-* `classes=0` detects stamps only.
-* `conf=0.36` is the selected confidence threshold from the F1-confidence analysis.
-* `save_crop=True` saves individual detected stamp crops.
-
-## Reports
-
-The `reports/` folder contains training and validation results, including:
-
-* F1-confidence curve
-* Precision-recall curve
-* Confusion matrix
-* Training and validation loss curves
-
-## Limitations
-
-This is an initial detector trained on a limited custom dataset of Sri Lankan stamp album pages.
-
-It may struggle with:
-
-* Heavily overlapping stamps
-* Very small stamps
-* Stamps partly hidden by other stamps
-* Strong glare or blur
-* Unusual album layouts not represented in the dataset
-
-The dataset and model will be expanded in future versions.
-
-## Future Work
-
-* Add more labelled album pages.
-* Improve detection of overlapping and triangular stamps.
-* Add automatic perspective correction and image preprocessing.
-* Build a second model to match exact stamp variants.
-* Integrate the trained models into an offline mobile application.
-
-## Author
-
-Nethsith Gunaweera
-
-## License
-
-This repository contains code and trained model files for research and educational purposes.
-
-The dataset has its own separate license in the dataset repository.

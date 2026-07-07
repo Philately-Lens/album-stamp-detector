@@ -1,1 +1,2 @@
 ultralytics==8.4.78
+huggingface_hub>=0.33.0
