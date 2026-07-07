@@ -2,13 +2,13 @@ from pathlib import Path
 import argparse
 from ultralytics import YOLO
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 
 parser = argparse.ArgumentParser(description="Train the stamp detector.")
 parser.add_argument(
     "--data",
-    required=True,
-    help="Path to the dataset.yaml file."
+    default=str(ROOT / "dataset.yaml"),
+    help="Path to the dataset.yaml file. Defaults to the repo-local dataset.yaml."
 )
 args = parser.parse_args()
 

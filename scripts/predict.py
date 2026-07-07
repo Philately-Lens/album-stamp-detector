@@ -2,7 +2,7 @@ from pathlib import Path
 import argparse
 from ultralytics import YOLO
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 
 parser = argparse.ArgumentParser(description="Run stamp detection.")
 parser.add_argument(
@@ -28,12 +28,12 @@ model.predict(
     source=args.source,
     classes=[0],
     conf=0.36,
-    iou=0.7,
+    iou=0.20,          # stronger duplicate-box removal
     save=True,
     save_txt=True,
     save_conf=True,
     save_crop=True,
     project=str(ROOT / "runs"),
     name="stamp_predictions",
-    exist_ok=True,
+    exist_ok=False,    # do not mix crops from old runs
 )
